@@ -8,7 +8,8 @@
 // It builds an array of peaks for drawing the waveform
 // The sampleStep parameter is optional, it is used to speed up the computation of the peaks
 // by skipping samples. If not provided, it will be set to a tenth of sampleSize in getPeaks()
-// sampleSize is the number of samples used to compute a single peak
+// sampleSize is th
+// e number of samples used to compute a single peak
 // see getPeaks() method for more details
 export default class WaveformDrawer {
     decodedAudioBuffer;

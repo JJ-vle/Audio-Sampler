@@ -20,3 +20,21 @@
   position: absolute;
   z-index:10;
 }
+
+:root{--bg:#0b0e13;--surface:#0f1720;--muted:#9ca3af;--accent:#10b981;--card:#111827;--text:#e6eef8}
+*{box-sizing:border-box}
+body{font-family:Inter,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial;margin:18px;background:var(--bg);color:var(--text)}
+header h1{margin:0 0 6px;font-size:18px}
+.muted{color:var(--muted)}
+.controls{display:flex;gap:10px;align-items:center;margin-bottom:12px}
+.btn{padding:8px 12px;border-radius:10px;border:1px solid #24303a;background:var(--card);color:var(--text);cursor:pointer}
+.main{display:flex}
+main{display:flex;gap:18px}
+.buttonGrid{display:flex;flex-wrap:wrap;gap:8px;width:220px}
+.buttonGrid button{padding:8px 10px;border-radius:8px;border:1px solid #26313b;background:#0c1116;color:var(--text);cursor:pointer}
+.visual{flex:1}
+.canvasWrap{position:relative;width:100%;max-width:900px;background:#071018;border-radius:8px;padding:8px}
+canvas{display:block;width:100%;height:auto;border-radius:6px}
+canvas.overlay{position:absolute;left:8px;top:8px;pointer-events:auto}
+#info{margin-top:8px}
+footer{margin-top:18px;font-size:13px}
