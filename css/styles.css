@@ -21,6 +21,14 @@
   z-index:10;
 }
 
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  max-width: 520px;
+  margin-top: 20px;
+}
+
 :root{--bg:#0b0e13;--surface:#0f1720;--muted:#9ca3af;--accent:#10b981;--card:#111827;--text:#e6eef8}
 *{box-sizing:border-box}
 body{font-family:Inter,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial;margin:18px;background:var(--bg);color:var(--text)}
