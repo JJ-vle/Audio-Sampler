@@ -1,4 +1,5 @@
 import SamplerEngine from './samplerEngine.js';
+import SoundItem from './sounds.js';
 
 export default class SamplerGUI {
     constructor(ctx) {
@@ -11,9 +12,11 @@ export default class SamplerGUI {
         this.btnAll = document.getElementById("btnAll");
         this.globalStatus = document.getElementById("globalStatus");
         this.presetSelect = document.getElementById("presetSelect");
+        this.canvas = document.getElementById("myCanvas");
+        this.canvasOverlay = document.getElementById("myCanvasOverlay");
 
         // moteur
-        this.engine = new SamplerEngine(this.ctx, this.canvas, this.canvasOverlay, this.container);
+        this.engine = new SamplerEngine(this.ctx, this.grid, this.canvas, this.canvasOverlay);
     }
 
     async init() {
@@ -65,10 +68,16 @@ export default class SamplerGUI {
         if (!preset) return;
         this.samples = preset.samples || [];
 
-        // ⚡ Charge les SoundItem via l'engine
-        await this.engine.loadPreset(preset);
+        // Crée les SoundItem avec les buffers déjà chargés
+        this.soundItems = this.samples.map((sample, i) => {
+            if (sample.buffer) {
+                return new SoundItem(i, sample.buffer, this.ctx, this.canvas, this.canvasOverlay, sample.name);
+            }
+            return null;
+        });
 
-        // Crée la grille 4×4 avec état & barre de progression
+
+        // Crée la grille des pads
         this.createGrid();
     }
 
@@ -110,15 +119,10 @@ export default class SamplerGUI {
 
                 // Lecture rapide depuis le pad
                 pad.addEventListener("click", async () => {
-                    const st = this.state[i];
-                    if (!st.buffer) return;
+                    const item = this.soundItems[i];
+                    if (!item) return;
                     await this.ensureAudioContext();
-                    const src = this.ctx.createBufferSource();
-                    src.buffer = st.buffer;
-                    src.connect(this.ctx.destination);
-                    src.start(0);
-                    pad.classList.add("playing");
-                    setTimeout(() => pad.classList.remove("playing"), Math.min(200, st.buffer.duration * 1000));
+                    item.onPlayClick();
                 });
 
                 this.state[i].els = { pad, sub, bar };
@@ -127,6 +131,7 @@ export default class SamplerGUI {
             this.grid.appendChild(pad);
         });
     }
+
 
     async ensureAudioContext() {
         if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -182,6 +187,20 @@ export default class SamplerGUI {
             const buf = await this.ctx.decodeAudioData(await blob.arrayBuffer());
 
             st.buffer = buf;
+
+            const sample = this.slots[i];
+            const soundItem = new SoundItem(
+                i,
+                buf,
+                this.ctx,
+                this.canvas,
+                this.canvasOverlay,
+                sample?.name || `Slot ${i}`
+            );
+
+            this.soundItems[i] = soundItem;
+            window.currentSound = soundItem;
+            
             sub.textContent = `Prêt (${this.niceBytes(blob.size)})`;
             bar.style.width = "100%";
             pad.classList.add("ready");

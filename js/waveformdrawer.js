@@ -19,7 +19,7 @@ export default class WaveformDrawer {
     displayHeight;
     sampleStep;
 
-    init(decodedAudioBuffer, canvas, color, sampleStep) {
+    init(decodedAudioBuffer, canvas, color = "#83E83E", sampleStep) {
         this.decodedAudioBuffer = decodedAudioBuffer;
         this.canvas = canvas;
         this.displayWidth = canvas.width;
@@ -57,7 +57,6 @@ export default class WaveformDrawer {
         // Compute the coefficient for scaling the peaks (values between -1 and 1)
         // after this conversion, the peaks will be between -height/2 and height/2
         let coef = height / (2 * this.max(this.peaks));
-
         let halfH = height / 2;
 
         // draw a horizontal line at half height
@@ -67,32 +66,29 @@ export default class WaveformDrawer {
         console.log("drawing from 0, " + halfH + " to " + width + ", " + halfH);
         ctx.stroke();
 
-
         //  draw the waveform
         ctx.beginPath();
         ctx.moveTo(0, halfH);
 
-        // first draw the upper part of the waveform
-        for (let i = 0; i < width; i++) {
-            let h = Math.round(this.peaks[i] * coef);
-            ctx.lineTo(i, halfH + h);
-        }
-        ctx.lineTo(width, halfH);
-
-        // then draw the lower part of the waveform
-        ctx.moveTo(0, halfH);
-
+        // Draw the upper part of the waveform
         for (let i = 0; i < width; i++) {
             let h = Math.round(this.peaks[i] * coef);
             ctx.lineTo(i, halfH - h);
         }
 
-        ctx.lineTo(width, halfH);
+        // Then draw the lower part of the waveform (mirror)
+        ctx.moveTo(0, halfH);
+        for (let i = 0; i < width; i++) {
+            let h = Math.round(this.peaks[i] * coef);
+            ctx.lineTo(i, halfH + h);
+        }
 
-        ctx.fill();
+        // Use stroke instead of fill to ensure visibility
+        ctx.stroke();
 
         ctx.restore();
     }
+
 
     // Builds an array of peaks for drawing
     // Need the decoded buffer
@@ -107,7 +103,7 @@ export default class WaveformDrawer {
 
         console.log("sample size = " + buffer.length);
 
-        // Check is sampleStep is defined, if not define it as a tenth of sampleSize
+        // Check if sampleStep is defined, if not define it as a tenth of sampleSize
         // ~~ is equivalent to Math.floor FOR POSITIVE VALUES ONLY, this is a trick to avoid using Math.floor()
         // is the bit operator for "NOT", so ~~ is like applying NOT twice. It removes the decimal part of a number
         // converted to a 32 bit integer. ~~x is equivalent to toInt32(x).
@@ -146,7 +142,8 @@ export default class WaveformDrawer {
                         peak = -value;
                     }
                 }
-                if (c > 1) {
+                // Correction: use (c > 0) instead of (c > 1) for multi-channel averaging
+                if (c > 0) {
                     this.peaks[i] += peak / channels;
                 } else {
                     this.peaks[i] = peak / channels;
@@ -154,6 +151,7 @@ export default class WaveformDrawer {
             }
         }
     }
+
 }
 
 
