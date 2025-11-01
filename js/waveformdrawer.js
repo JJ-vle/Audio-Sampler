@@ -89,7 +89,7 @@ export default class WaveformDrawer {
         ctx.restore();
     }
 
-
+/*
     // Builds an array of peaks for drawing
     // Need the decoded buffer
     // Note that we go first through all the sample data and then
@@ -151,6 +151,45 @@ export default class WaveformDrawer {
             }
         }
     }
+*/
+
+    getPeaks() {
+        const buffer = this.decodedAudioBuffer;
+        if (!buffer) {
+            console.warn("WaveformDrawer: no buffer provided");
+            this.peaks = new Float32Array(0);
+            return;
+        }
+
+        const width = this.displayWidth;
+        const channels = buffer.numberOfChannels;
+        const peaks = new Float32Array(width);
+        const step = Math.floor(buffer.length / width) || 1; // 1 pixel = bloc d'échantillons
+
+        for (let i = 0; i < width; i++) {
+            let maxPeak = 0;
+
+            for (let c = 0; c < channels; c++) {
+                const chan = buffer.getChannelData(c);
+                const start = i * step;
+                const end = Math.min(start + step, buffer.length);
+                let blockMax = 0;
+
+                for (let j = start; j < end; j++) {
+                    const v = Math.abs(chan[j]);
+                    if (v > blockMax) blockMax = v;
+                }
+
+                maxPeak += blockMax / channels;
+            }
+
+            peaks[i] = maxPeak;
+        }
+
+        this.peaks = peaks;
+    }
+
+
 
 }
 

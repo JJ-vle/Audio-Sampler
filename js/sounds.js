@@ -13,8 +13,10 @@ export default class SoundItem {
         this.name = name;
 
         this.waveformDrawer = new WaveformDrawer();
-        this.trimbarsDrawer = new TrimbarsDrawer(canvasOverlay, 100, 200);
-        this.trim = { left: 100, right: 200 }; // default positions
+        //this.trimbarsDrawer = new TrimbarsDrawer(canvasOverlay, 100, 200);
+        //this.trim = { left: 100, right: 200 }; // default positions
+        this.trimbarsDrawer = new TrimbarsDrawer(canvasOverlay, 0, canvas.width);
+        this.trim = { left: 0, right: canvas.width };
         this.button = this.#createButton();
 
         this.#initMouseEvents();

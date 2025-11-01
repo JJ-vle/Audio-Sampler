@@ -60,6 +60,7 @@ export default class SamplerGUI {
             opt.value = i;
             opt.textContent = preset.name || `Preset ${i + 1}`;
             this.presetSelect.appendChild(opt);
+            if (i === 0) opt.selected = true;
         });
     }
 
@@ -118,12 +119,52 @@ export default class SamplerGUI {
                 pad.appendChild(prog);
 
                 // Lecture rapide depuis le pad
+                /*
                 pad.addEventListener("click", async () => {
                     const item = this.soundItems[i];
                     if (!item) return;
                     await this.ensureAudioContext();
                     item.onPlayClick();
                 });
+                */
+                pad.addEventListener("click", async () => {
+                    const st = this.state[i];
+                    const sample = this.slots[i];
+                    if (!sample) return;
+
+                    await this.ensureAudioContext();
+
+                    // Si le buffer n'existe pas, on le charge d'abord
+                    if (!st.buffer) {
+                        try {
+                            pad.disabled = true;
+                            pad.classList.remove("ready");
+                            await this.loadAndDecode(i, `http://localhost:3000/presets/${encodeURIComponent(sample.url.replace(/^\.\//, ''))}`);
+                        } catch (e) {
+                            console.error(e);
+                            pad.disabled = false;
+                            return;
+                        }
+                    }
+
+                    // Créer le SoundItem seulement si le buffer existe
+                    if (!this.soundItems[i] && st.buffer) {
+                        this.soundItems[i] = new SoundItem(
+                            i,
+                            st.buffer,
+                            this.ctx,
+                            this.canvas,
+                            this.canvasOverlay,
+                            sample.name || `Slot ${i}`
+                        );
+                    }
+
+                    // Jouer seulement si le buffer existe
+                    if (this.soundItems[i]?.buffer) {
+                        this.soundItems[i].onPlayClick();
+                    }
+                });
+
 
                 this.state[i].els = { pad, sub, bar };
             }
@@ -173,46 +214,56 @@ export default class SamplerGUI {
                 chunks.push(value);
                 recv += value.length;
 
+                // ← Mettre à jour la progress bar à chaque chunk reçu
                 if (total > 0) {
                     const pct = Math.max(0, Math.min(100, Math.floor((recv / total) * 100)));
                     bar.style.width = pct + "%";
                     sub.textContent = `${this.niceBytes(recv)} / ${this.niceBytes(total)} (${pct}%)`;
                 } else {
+                    // Pas de taille connue → barre "semi pleine"
                     bar.style.width = "50%";
                     sub.textContent = `${this.niceBytes(recv)} reçus…`;
                 }
             }
 
-            const blob = new Blob(chunks, { type: res.headers.get("content-type") || "application/octet-stream" });
+            const blob = new Blob(chunks, { type: res.headers.get("content-type") || "audio/mpeg" });
             const buf = await this.ctx.decodeAudioData(await blob.arrayBuffer());
 
             st.buffer = buf;
 
-            const sample = this.slots[i];
-            const soundItem = new SoundItem(
-                i,
-                buf,
-                this.ctx,
-                this.canvas,
-                this.canvasOverlay,
-                sample?.name || `Slot ${i}`
-            );
+            // Crée le SoundItem si besoin
+            if (!this.soundItems[i]) {
+                const sample = this.slots[i];
+                this.soundItems[i] = new SoundItem(
+                    i,
+                    buf,
+                    this.ctx,
+                    this.canvas,
+                    this.canvasOverlay,
+                    sample?.name || `Slot ${i}`
+                );
+            }
 
-            this.soundItems[i] = soundItem;
-            window.currentSound = soundItem;
-            
+            window.currentSound = this.soundItems[i];
+
             sub.textContent = `Prêt (${this.niceBytes(blob.size)})`;
             bar.style.width = "100%";
             pad.classList.add("ready");
             pad.disabled = false;
+
+            // Stocker le buffer dans le preset pour éviter de recharger
+            if (this.samples[i]) this.samples[i].buffer = buf;
+
         } catch (e) {
             sub.textContent = `Erreur: ${e.message}`;
             console.error(e);
             pad.disabled = false;
+            bar.style.width = "0%";
         } finally {
             st.loading = false;
         }
     }
+
 
     niceBytes(n) {
         if (!Number.isFinite(n)) return "";
