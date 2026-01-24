@@ -10,50 +10,36 @@
     </button>
   </a>
 </div>
-
 <mat-list>
-  <!-- Boucle sur les presets -->
-  <ng-container *ngFor="let preset of presets; trackBy: trackBySlug">
-    
+  @for (preset of presets; track preset.slug) {
+
     <h3 mat-subheader>
-      {{ preset.name }} ({{ preset.type }}) 
+      {{ preset.name }} ({{ preset.type }})
       - {{ preset.isFactoryPresets ? 'Factory preset' : 'User preset' }}
     </h3>
 
-    <mat-list-item>
-      <div>
-        <p><strong>Samples:</strong></p>
-        <ul>
-          <li *ngFor="let sample of preset.samples">
+    <!-- PAS de mat-list-item ici parce que sinon la liste de samples se limite à 2 -->
+    <div class="preset-card">
+
+      <p><strong>Samples:</strong></p>
+      <ul>
+        @for (sample of preset.samples; track sample.name) {
+          <li>
             {{ sample.name }} — {{ sample.url }}
           </li>
-        </ul>
-      </div>
+        }
+      </ul>
 
-      <div class="actions">
-        <button mat-button color="primary" [routerLink]="['/presets', preset.slug]">
-          Détails
-        </button>
-      </div>
-    </mat-list-item>
+      <button
+        mat-button
+        color="primary"
+        [routerLink]="['/presets', preset.slug]">
+        Détails
+      </button>
+
+    </div>
 
     <mat-divider></mat-divider>
 
-  </ng-container>
+  }
 </mat-list>
-
-<!--
-
-<h2>Here as a table</h2>
-<table>
-    <tr>
-        <th>Assignment Name</th>
-        <th>Due Date</th>
-    </tr>
-    @for(assignment of assignments; track assignment.nom) {
-    <tr>
-        <td>{{ assignment.nom }}</td>
-        <td>{{ assignment.dateDeRendu }}</td>
-    </tr>
-    }
--->
