@@ -1,0 +1,86 @@
+<h2>Ajout d'un preset</h2>
+
+<form #presetForm="ngForm"
+      class="form"
+      (ngSubmit)="onAjouterPreset(); presetForm.reset()">
+
+  <!-- Nom -->
+  <mat-form-field appearance="fill">
+    <mat-label>Nom du preset</mat-label>
+    <input
+      matInput
+      name="name"
+      [(ngModel)]="preset.name"
+      required
+    />
+  </mat-form-field>
+
+  <!-- Type -->
+  <mat-form-field appearance="fill">
+    <mat-label>Type</mat-label>
+    <input
+      matInput
+      name="type"
+      [(ngModel)]="preset.type"
+      placeholder="drum / synth / fx..."
+      required
+    />
+  </mat-form-field>
+
+  <!-- Factory preset -->
+  <!--
+  <mat-checkbox
+    name="isFactoryPresets"
+    [(ngModel)]="preset.isFactoryPresets">
+    Preset usine
+  </mat-checkbox>
+  -->
+
+
+  <!-- Liste des samples -->
+  @for (sample of preset.samples; track $index) {
+    <div class="sample-row">
+      <mat-form-field appearance="fill" class="sample-field">
+        <mat-label>Nom du sample</mat-label>
+        <input
+          matInput
+          [(ngModel)]="sample.name"
+          name="sampleName{{$index}}"
+        />
+      </mat-form-field>
+
+      <mat-form-field appearance="fill" class="sample-field">
+        <mat-label>URL du son</mat-label>
+        <input
+          matInput
+          [(ngModel)]="sample.url"
+          name="sampleUrl{{$index}}"
+        />
+      </mat-form-field>
+
+      <!-- Bouton supprimer -->
+      <button
+        mat-button
+        color="warn"
+        type="button"
+        (click)="removeSample($index)">
+        Supprimer
+      </button>
+    </div>
+  }
+
+  <button mat-stroked-button type="button"
+          (click)="addSample()">
+    + Ajouter un sample
+  </button>
+
+  <br /><br />
+
+  <button
+    mat-raised-button
+    color="primary"
+    type="submit"
+    [disabled]="!presetForm.valid">
+    Ajouter le preset
+  </button>
+</form>

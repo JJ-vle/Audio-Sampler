@@ -22,6 +22,7 @@ import { PresetsService } from '../shared/presets.service';
   templateUrl: './presets.html',
   styleUrl: './presets.css',
 })
+
 export class Presets implements OnInit {
 
   title = 'List of presets';
@@ -45,7 +46,7 @@ export class Presets implements OnInit {
     console.log('Request sent to PresetsService');
   }
 
-  trackBySlug(index: number, preset: Preset): string {
-    return preset.slug;
+  trackByName(index: number, preset: Preset): string {
+    return preset.name;
   }
 }

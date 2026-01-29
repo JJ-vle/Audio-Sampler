@@ -1,0 +1,26 @@
+.form {
+    display:flex;
+    flex-direction: column;
+    margin: 5px;
+}
+
+.sample-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.sample-field {
+    flex: 1;
+}
+
+form > button[type="button"] {
+    float: right;
+    height: 36px;
+    min-width: 36px;
+    max-width: 300px;
+    padding: 0 12px;
+    margin-bottom: 16px;
+  }
+  

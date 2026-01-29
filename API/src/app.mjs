@@ -147,6 +147,37 @@ app.post("/api/presets", async (req, res) => {
 });
 
 
+app.post("/api/presets", async (req, res, next) => {
+  try {
+    const preset = req.body;
+
+    // validate the received preset object
+    const errs = validatePreset(preset);
+    if (errs.length) {
+      return res.status(400).json({ errors: errs });
+    }
+    
+    // check if a preset with the same name already exists
+    const exists = await Preset.findOne({ name: preset.name });
+    if (exists) {
+      return res.status(409).json({ error: "A preset with this name already exists" });
+    }
+
+    // Add metadata and save the preset in a json file
+    const now = new Date().toISOString();
+    const created = await Preset.create({
+      ...preset,
+      slug: slugify(preset.name),
+      updatedAt: now
+    });
+
+    res.status(201).json(created);
+
+  } catch (err) {
+    next(err);
+  }
+});
+
 
 // POST route for uploading audio sample files (.wav, .mp3 etc./) 
 // This route will take as a parameter the sample/folder name where to store the file
@@ -244,22 +275,6 @@ app.patch("/api/presets/:name", async (req, res) => {
 
 
 // DELETE a preset by name
-app.delete("/api/presets/:name", async (req, res, next) => {
-  try {
-    const file = safePresetPath(req.params.name);
-    await fs.rm(file, { force: true });
-
-    // We should also delete the corresponding audio files in the folder with the same name
-    // get folder path and delete if exists
-    const folderPath = path.join(DATA_DIR, req.params.name);
-    await fs.rm(folderPath, { recursive: true, force: true }).catch(() => {});
-    
-    // 204 means No Content
-
-    res.status(204).send();
-  } catch (e) { next(e); }
-});
-
 app.delete("/api/presets/:name", async (req, res) => {
   const deleted = await Preset.findOneAndDelete({
     $or: [{ name: req.params.name }, { slug: req.params.name }]

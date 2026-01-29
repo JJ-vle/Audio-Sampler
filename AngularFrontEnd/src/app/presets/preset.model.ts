@@ -6,7 +6,6 @@ export interface Sample {
 export class Preset {
   _id!: string;          // MongoDB id
   name!: string;
-  slug!: string;
   type!: string;
   isFactoryPresets!: boolean;
   samples!: Sample[];

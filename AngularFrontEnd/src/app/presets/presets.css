@@ -6,3 +6,7 @@
 .ajout-btn {
   align-self: flex-end;
 }
+
+body {
+  margin-bottom: 16px;
+}

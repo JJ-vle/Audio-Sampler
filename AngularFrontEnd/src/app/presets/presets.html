@@ -1,17 +1,17 @@
 <h2>{{ title }}</h2>
-<h2>Add new Preset</h2>
+<h2>Nouveau Preset</h2>
 
 <p>Cliquez sur le bouton pour ajouter un nouveau preset.</p>
 
 <div>
   <a routerLink="/add" class="container">
     <button mat-flat-button color="accent" class="ajout-btn">
-      Ajouter Preset
+      Ajouter un Preset
     </button>
   </a>
 </div>
 <mat-list>
-  @for (preset of presets; track preset.slug) {
+  @for (preset of presets; track preset.name) {
 
     <h3 mat-subheader>
       {{ preset.name }} ({{ preset.type }})
@@ -33,7 +33,7 @@
       <button
         mat-button
         color="primary"
-        [routerLink]="['/presets', preset.slug]">
+        [routerLink]="['/presets', preset.name]">
         Détails
       </button>
 
