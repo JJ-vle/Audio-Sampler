@@ -111,10 +111,10 @@ app.get("/api/presets", async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// GET one preset by name or slug. slug means a URL-friendly version of the name
-app.get("/api/presets/:name", async (req, res) => {
+// GET one preset by _id or name
+app.get("/api/presets/:_id", async (req, res) => {
   const preset = await Preset.findOne({
-    $or: [{ name: req.params.name }, { slug: req.params.name }]
+    $or: [{ _id: req.params._id }, { name: req.params._id }]
   });
 
   if (!preset) return res.status(404).json({ error: "Preset not found" });

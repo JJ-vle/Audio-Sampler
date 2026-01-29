@@ -1,0 +1,20 @@
+@if (preset) {
+  <div class="container">
+    <h2>Renommer le preset</h2>
+
+    <form (ngSubmit)="onSave()" class="form">
+      <mat-form-field appearance="fill">
+        <mat-label>Nom du preset</mat-label>
+        <input matInput [(ngModel)]="newName"
+          name="presetName" required
+        />
+      </mat-form-field>
+
+      <button mat-raised-button color="primary"
+        type="submit" [disabled]="!newName.trim()"
+      >
+        Sauvegarder
+      </button>
+    </form>
+  </div>
+}

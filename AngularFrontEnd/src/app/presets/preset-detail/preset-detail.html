@@ -1,0 +1,61 @@
+
+
+
+@if (preset) {
+    <mat-card appearance="outlined">
+      <mat-card-header>
+        <mat-card-title>Détails du preset</mat-card-title>
+        <mat-card-subtitle>
+          Type : {{ preset.type }}
+        </mat-card-subtitle>
+      </mat-card-header>
+  
+      <mat-card-content>
+        <p>
+          <strong>Nom :</strong> {{ preset.name }} <br />
+          <strong>Factory :</strong>
+          {{ preset.isFactoryPresets ? 'Oui' : 'Non' }} <br />
+        </p>
+  
+        <h3>Samples</h3>
+  
+        <mat-list>
+            @for (sample of preset.samples; track $index) {
+              <mat-list-item class="sample-item">
+                <div matListItemTitle>
+                  {{ sample.name }}
+                </div>
+          
+                @if (sample.url) {
+                  <div matListItemLine class="sample-url">
+                    <code>{{ sample.url }}</code>
+                  </div>
+                }
+              </mat-list-item>
+          
+              <mat-divider />
+            }
+          </mat-list>
+          
+      </mat-card-content>
+  
+      <mat-card-actions>
+        <button
+          mat-stroked-button
+          color="primary"
+          (click)="onEdit()"
+        >
+          EDIT
+        </button>
+  
+        <button
+          mat-flat-button
+          color="warn"
+          (click)="onDelete()"
+        >
+          DELETE
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  }
+  
