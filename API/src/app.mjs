@@ -195,27 +195,42 @@ app.post("/api/presets", async (req, res, next) => {
 // etc.
 // To do that, we will need to modify later both this code and the front-end code
 // We will see that in the next session
-app.post("/api/upload/:folder", upload.array("files", 16), (req, res) => {
-  // All files are in req.files
-  if (!req.files || req.files.length === 0) {
-    return res.status(400).json({ error: "No files were uploaded." });
+app.post("/api/upload/:folder", upload.array("files", 16), async (req, res, next) => {
+  try {
+    //folder = presetname
+    const folder = req.params.folder;
+    if (!folder) return res.status(400).json({ error: "Preset name is required." });
+
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: "No files were uploaded." });
+    }
+
+    // Find the preset in MongoDB
+    const preset = await Preset.findOne({ name: folder });
+    if (!preset) return res.status(404).json({ error: "Preset not found" });
+    const folderPath = path.join(DATA_DIR, folder);
+    await fs.mkdir(folderPath, { recursive: true }).catch(() => {});
+
+    // Build file info and add to preset.samples
+    const newSamples = req.files.map(file => ({
+      name: path.parse(file.originalname).name,
+      url: `/presets/${folder}/${file.filename}`
+    }));
+
+    preset.samples = [...preset.samples, ...newSamples];
+    await preset.save();
+
+    // Return info about uploaded files
+    res.status(201).json({
+      uploaded: newSamples.length,
+      files: newSamples
+    });
+
+  } catch (err) {
+    next(err);
   }
-
-  const destinationFolder = req.params.folder || "";
-  console.log(`Uploaded ${req.files.length} files to folder: ${destinationFolder}`);
-  
-  // Prepare response with file information
-  const fileInfos = req.files.map((file) => ({
-    originalName: file.originalname,
-    storedName: file.filename,
-    size: file.size,
-    url: `/presets/${req.params.folder}/${file.filename}`
-  }));
-
-  // with the current multer setup, files are already saved in the correct folder
-  // so we just return the file information
-  res.status(201).json({ uploaded: fileInfos.length, files: fileInfos });
 });
+
 
 // PUT for replacing or renaming a preset file completely
 app.put("/api/presets/:name", async (req, res) => {

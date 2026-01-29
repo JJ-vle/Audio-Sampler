@@ -8,7 +8,8 @@ import { Preset } from '../presets/preset.model';
 })
 export class PresetsService {
 
-  private apiUrl = 'https://audio-sampler.onrender.com/api/presets';
+  //private apiUrl = 'https://audio-sampler.onrender.com/api/presets';
+  private apiUrl = 'http://localhost:3000/api/presets';
 
   constructor(private http: HttpClient) {}
 
@@ -18,8 +19,8 @@ export class PresetsService {
   }
 
   // récupérer un preset par nom ou slug
-  getPreset(nameOrSlug: string): Observable<Preset> {
-    return this.http.get<Preset>(`${this.apiUrl}/${nameOrSlug}`);
+  getPreset(name: string): Observable<Preset> {
+    return this.http.get<Preset>(`${this.apiUrl}/${name}`);
   }
 
   // ajouter un preset
@@ -28,17 +29,24 @@ export class PresetsService {
   }
 
   // supprimer un preset
-  deletePreset(nameOrSlug: string): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/${nameOrSlug}`);
+  deletePreset(name: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${name}`);
   }
 
   // modifier complètement un preset (PUT)
-  updatePreset(nameOrSlug: string, preset: Preset): Observable<Preset> {
-    return this.http.put<Preset>(`${this.apiUrl}/${nameOrSlug}`, preset);
+  updatePreset(name: string, preset: Preset): Observable<Preset> {
+    return this.http.put<Preset>(`${this.apiUrl}/${name}`, preset);
+  }
+
+  // dans PresetsService
+  uploadFiles(presetName: string, files: File[]): Observable<any> {
+    const formData = new FormData();
+    files.forEach(file => formData.append('files', file, file.name));
+    return this.http.post(`${this.apiUrl.replace('/presets', '/upload')}/${presetName}`, formData);
   }
 
   // modification partielle (PATCH)
-  patchPreset(nameOrSlug: string, partial: Partial<Preset>): Observable<Preset> {
-    return this.http.patch<Preset>(`${this.apiUrl}/${nameOrSlug}`, partial);
+  patchPreset(name: string, partial: Partial<Preset>): Observable<Preset> {
+    return this.http.patch<Preset>(`${this.apiUrl}/${name}`, partial);
   }
 }

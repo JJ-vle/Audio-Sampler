@@ -49,7 +49,7 @@
         />
       </mat-form-field>
 
-      <mat-form-field appearance="fill" class="sample-field">
+      <mat-form-field appearance="fill" class="sample-field" *ngIf="files[$index]?.length === 0">
         <mat-label>URL du son</mat-label>
         <input
           matInput
@@ -57,6 +57,20 @@
           name="sampleUrl{{$index}}"
         />
       </mat-form-field>
+
+      <!-- Upload de fichiers -->
+      <input type="file"
+        id="fileInput{{$index}}"
+        (change)="onFileSelected($event, $index)"
+        multiple
+        hidden
+        accept=".mp3,.wav">
+
+        <button mat-stroked-button color="accent"
+            type="button"
+            (click)="triggerFileInput($index)">
+            Choisir un fichier
+        </button>
 
       <!-- Bouton supprimer -->
       <button
