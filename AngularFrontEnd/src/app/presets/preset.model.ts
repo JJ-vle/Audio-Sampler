@@ -4,7 +4,7 @@ export interface Sample {
 }
 
 export class Preset {
-  _id!: string;          // MongoDB id
+  _id?: string;          // MongoDB id
   name!: string;
   type!: string;
   isFactoryPresets!: boolean;

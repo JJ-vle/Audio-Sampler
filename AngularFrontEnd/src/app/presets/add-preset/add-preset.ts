@@ -22,7 +22,6 @@ import { PresetsService } from '../../shared/presets.service';
 
 export class AddPreset {
   preset: Preset = {
-    _id: '',
     name: '',
     type: '',
     isFactoryPresets: false,
