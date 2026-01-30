@@ -56,7 +56,9 @@ export default class WaveformDrawer {
         let width = this.displayWidth;
         // Compute the coefficient for scaling the peaks (values between -1 and 1)
         // after this conversion, the peaks will be between -height/2 and height/2
-        let coef = height / (2 * this.max(this.peaks));
+        let maxPeak = this.max(this.peaks) || 1;
+        let coef = height / (2 * maxPeak);
+
         let halfH = height / 2;
 
         // draw a horizontal line at half height

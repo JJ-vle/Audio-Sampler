@@ -1,286 +1,234 @@
-import SamplerEngine from './samplerEngine.js';
-import SoundItem from './sounds.js';
+// samplerGUI.js
+import SamplerEngine from "./samplerEngine.js";
+import SoundItem from "./sounds.js";
+import WaveformDrawer from './waveformdrawer.js';
 
 export default class SamplerGUI {
     constructor(ctx) {
         this.ctx = ctx;
-        this.presets = [];
-        this.engine = null;
+        this.engine = new SamplerEngine(ctx);
 
-        // UI
         this.grid = document.getElementById("grid");
+        this.presetSelect = document.getElementById("presetSelect");
         this.btnAll = document.getElementById("btnAll");
         this.globalStatus = document.getElementById("globalStatus");
-        this.presetSelect = document.getElementById("presetSelect");
-        this.canvas = document.getElementById("myCanvas");
-        this.canvasOverlay = document.getElementById("myCanvasOverlay");
 
-        // moteur
-        this.engine = new SamplerEngine(this.ctx, this.grid, this.canvas, this.canvasOverlay);
+        this.waveformCanvas = document.getElementById("myCanvas");
+        this.waveformDrawer = new WaveformDrawer();
+
+        this.presets = [];
+        this.samples = [];
+        this.state = [];
+        this.soundItems = [];
+
     }
 
+
     async init() {
-        // Récupérer les presets
-        const response = await fetch("http://localhost:3000/api/presets");
-        this.presets = await response.json();
+        const res = await fetch("http://localhost:3000/api/presets");
+        this.presets = await res.json();
 
         if (!this.presets.length) {
-            this.globalStatus.textContent = "Aucun preset trouvé.";
+            this.globalStatus.textContent = "Aucun preset.";
             return;
         }
 
-        this.populatePresetList(this.presets);
-
-        // Charge le premier preset par défaut
+        this.populatePresetList();
         await this.loadPreset(0);
 
-        // Changement de preset
-        this.presetSelect.addEventListener("change", async (e) => {
-            const index = parseInt(e.target.value);
-            await this.loadPreset(index);
+        this.presetSelect.addEventListener("change", e => {
+            this.loadPreset(+e.target.value);
         });
 
-        // Charger tout
-        this.btnAll.addEventListener("click", async () => {
-            this.btnAll.disabled = true;
-            this.globalStatus.textContent = "Chargement…";
-            await this.loadAllSamples();
-            this.globalStatus.textContent = "OK";
-            setTimeout(() => (this.globalStatus.textContent = ""), 1200);
-            this.btnAll.disabled = false;
-        });
-
-        this.animate();
+        this.btnAll.addEventListener("click", () => this.loadAll());
     }
 
-    populatePresetList(presets) {
-        this.presetSelect.innerHTML = `<option disabled selected>Choose a preset...</option>`;
-        presets.forEach((preset, i) => {
+    populatePresetList() {
+        this.presetSelect.innerHTML = "";
+        this.presets.forEach((p, i) => {
             const opt = document.createElement("option");
             opt.value = i;
-            opt.textContent = preset.name || `Preset ${i + 1}`;
+            opt.textContent = p.name;
             this.presetSelect.appendChild(opt);
-            if (i === 0) opt.selected = true;
         });
     }
 
     async loadPreset(index) {
         const preset = this.presets[index];
         if (!preset) return;
-        this.samples = preset.samples || [];
-
-        // Crée les SoundItem avec les buffers déjà chargés
-        this.soundItems = this.samples.map((sample, i) => {
-            if (sample.buffer) {
-                return new SoundItem(i, sample.buffer, this.ctx, this.canvas, this.canvasOverlay, sample.name);
-            }
-            return null;
-        });
-
-
-        // Crée la grille des pads
-        this.createGrid();
-    }
-
-    createGrid() {
+    
+        this.samples = preset.samples;
+        this.soundItems = [];
+        this.grid.innerHTML = "";
+    
         const GRID_SIZE = 16;
-        const ORDER = [12, 13, 14, 15, 8, 9, 10, 11, 4, 5, 6, 7, 0, 1, 2, 3];
+        const ORDER = [12, 13, 14, 15, 8, 9, 10, 11, 4, 5, 6, 7, 0, 1, 2, 3]; // bottom-left = pad 0
         this.slots = new Array(GRID_SIZE).fill(null);
-
+    
+        // mapping samples --> slots selon l’ordre
         for (let k = 0; k < Math.min(this.samples.length, GRID_SIZE); k++) {
             this.slots[ORDER[k]] = this.samples[k];
         }
-
-        this.state = this.slots.map(() => ({ buffer: null, loading: false, els: null }));
-        this.grid.innerHTML = "";
-
+    
+        // cree les pads selon la grille et initialise l’état
+        this.state = this.slots.map(s => ({ buffer: null, loading: false, els: null }));
         this.slots.forEach((sample, i) => {
-            const pad = document.createElement("button");
-            pad.type = "button";
-            pad.className = "pad" + (sample ? "" : " empty");
-            pad.disabled = !sample;
-
-            const label = document.createElement("div");
-            label.className = "label";
-            label.textContent = sample ? sample.name : "—";
-            pad.appendChild(label);
-
-            const sub = document.createElement("div");
-            sub.className = "sub";
-            sub.textContent = sample ? "En attente" : "";
-            pad.appendChild(sub);
-
-            if (sample) {
-                const prog = document.createElement("div");
-                prog.className = "prog";
-                const bar = document.createElement("div");
-                bar.className = "bar";
-                prog.appendChild(bar);
-                pad.appendChild(prog);
-
-                // Lecture rapide depuis le pad
-                /*
-                pad.addEventListener("click", async () => {
-                    const item = this.soundItems[i];
-                    if (!item) return;
-                    await this.ensureAudioContext();
-                    item.onPlayClick();
-                });
-                */
-                pad.addEventListener("click", async () => {
-                    const st = this.state[i];
-                    const sample = this.slots[i];
-                    if (!sample) return;
-
-                    await this.ensureAudioContext();
-
-                    // Si le buffer n'existe pas, on le charge d'abord
-                    if (!st.buffer) {
-                        try {
-                            pad.disabled = true;
-                            pad.classList.remove("ready");
-                            await this.loadAndDecode(i, `http://localhost:3000/presets/${encodeURIComponent(sample.url.replace(/^\.\//, ''))}`);
-                        } catch (e) {
-                            console.error(e);
-                            pad.disabled = false;
-                            return;
-                        }
-                    }
-
-                    // Créer le SoundItem seulement si le buffer existe
-                    if (!this.soundItems[i] && st.buffer) {
-                        this.soundItems[i] = new SoundItem(
-                            i,
-                            st.buffer,
-                            this.ctx,
-                            this.canvas,
-                            this.canvasOverlay,
-                            sample.name || `Slot ${i}`
-                        );
-                    }
-
-                    // Jouer seulement si le buffer existe
-                    if (this.soundItems[i]?.buffer) {
-                        this.soundItems[i].onPlayClick();
-                    }
-                });
-
-
-                this.state[i].els = { pad, sub, bar };
-            }
-
-            this.grid.appendChild(pad);
+            if (sample) this.createPad(sample, i);
+            else this.createPad({ name: "—", url: null }, i); // pad vide
         });
     }
+    
+
+    createPad(sample, index) {
+        const pad = document.createElement("button");
+        pad.className = "pad";
+
+        const label = document.createElement("div");
+        label.textContent = sample.name;
+        pad.appendChild(label);
+
+        const sub = document.createElement("div");
+        sub.textContent = "En attente";
+        pad.appendChild(sub);
 
 
-    async ensureAudioContext() {
-        if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-        if (this.ctx.state === "suspended") await this.ctx.resume();
-        return this.ctx;
-    }
+        const prog = document.createElement("div");
+        prog.className = "prog";
+        
+        const bar = document.createElement("div");
+        bar.className = "bar";
+        
+        prog.appendChild(bar);
+        pad.appendChild(prog);
+        
+        this.state[index] = { buffer: null, loading: false, els: { pad, sub, bar } };
 
-    async loadAllSamples() {
-        const tasks = this.slots.map((sample, i) =>
-            sample
-                ? this.loadAndDecode(i, `http://localhost:3000/presets/${encodeURIComponent(sample.url.replace(/^\.\//, ''))}`)
-                : Promise.resolve()
-        );
-        return Promise.allSettled(tasks);
-    }
+        if (!sample.url) return;
 
-    async loadAndDecode(i, url) {
-        const st = this.state[i];
-        if (st.loading || st.buffer || !st.els) return;
-        st.loading = true;
-
-        const { pad, sub, bar } = st.els;
-        pad.disabled = true;
-        pad.classList.remove("ready");
-        sub.textContent = "Connexion…";
-        bar.style.width = "0%";
-
-        try {
-            const res = await fetch(url);
-            if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
-            const total = Number(res.headers.get("content-length") || 0);
-            const reader = res.body.getReader();
-            const chunks = [];
-            let recv = 0;
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                chunks.push(value);
-                recv += value.length;
-
-                // ← Mettre à jour la progress bar à chaque chunk reçu
-                if (total > 0) {
-                    const pct = Math.max(0, Math.min(100, Math.floor((recv / total) * 100)));
-                    bar.style.width = pct + "%";
-                    sub.textContent = `${this.niceBytes(recv)} / ${this.niceBytes(total)} (${pct}%)`;
-                } else {
-                    // Pas de taille connue → barre "semi pleine"
-                    bar.style.width = "50%";
-                    sub.textContent = `${this.niceBytes(recv)} reçus…`;
-                }
-            }
-
-            const blob = new Blob(chunks, { type: res.headers.get("content-type") || "audio/mpeg" });
-            const buf = await this.ctx.decodeAudioData(await blob.arrayBuffer());
-
-            st.buffer = buf;
-
-            // Crée le SoundItem si besoin
-            if (!this.soundItems[i]) {
-                const sample = this.slots[i];
-                this.soundItems[i] = new SoundItem(
-                    i,
-                    buf,
-                    this.ctx,
-                    this.canvas,
-                    this.canvasOverlay,
-                    sample?.name || `Slot ${i}`
-                );
-            }
-
-            window.currentSound = this.soundItems[i];
-
-            sub.textContent = `Prêt (${this.niceBytes(blob.size)})`;
-            bar.style.width = "100%";
-            pad.classList.add("ready");
-            pad.disabled = false;
-
-            // Stocker le buffer dans le preset pour éviter de recharger
-            if (this.samples[i]) this.samples[i].buffer = buf;
-
-        } catch (e) {
-            sub.textContent = `Erreur: ${e.message}`;
-            console.error(e);
-            pad.disabled = false;
+        pad.addEventListener("click", async () => {
+            const st = this.state[index];
+        
+            pad.disabled = true;
+            sub.textContent = "Chargement…";
             bar.style.width = "0%";
-        } finally {
-            st.loading = false;
-        }
-    }
+        
+            try {
+                const buffer = await this.engine.loadSample(sample, (progress) => {
+                    const pct = Math.floor(progress * 100);
+                    bar.style.width = pct + "%";
+                    sub.textContent = `Chargement ${pct}%`;
+                });
+        
 
+                if (!buffer) throw new Error("Buffer non chargé");
 
-    niceBytes(n) {
-        if (!Number.isFinite(n)) return "";
-        const u = ["B", "KB", "MB", "GB"];
-        let i = 0, v = n;
-        while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
-        return v.toFixed(v >= 10 || i === 0 ? 0 : 1) + " " + u[i];
-    }
+                // cree le SoundItem
+                const soundItem = new SoundItem(
+                    index,
+                    buffer,
+                    this.ctx,
+                    this.waveformCanvas,
+                    document.getElementById("myCanvasOverlay"),
+                    sample.name
+                );
+                this.soundItems[index] = soundItem;
+        
+                // initialise waveform pour la première fois
+                await this.engine.ensureContext();
+                soundItem.onPlayClick();
+        
+                // clic sur pad pour rejouer
+                pad.onclick = async () => {
+                    await this.engine.ensureContext();
+                    soundItem.onPlayClick();
+                };
 
-    animate() {
-        const loop = () => {
-            requestAnimationFrame(loop);
-            if (window.currentSound && window.currentSound.trimbarsDrawer) {
-                window.currentSound.trimbarsDrawer.clear();
-                window.currentSound.trimbarsDrawer.draw();
+                bar.style.width = "100%";
+                sub.textContent = "Prêt";
+                pad.classList.add("ready");
+                pad.disabled = false;
+        
+            } catch (e) {
+                sub.textContent = "Erreur";
+                bar.style.width = "0%";
+                pad.disabled = false;
+                console.error(e);
             }
-        };
-        loop();
+        });
+        
+        
+
+        this.grid.appendChild(pad);
     }
+
+    async loadAll() {
+        this.globalStatus.textContent = "Chargement…";
+        this.btnAll.disabled = true;
+
+        const tasks = this.samples.map((sample, i) => {
+            const st = this.state[i];
+            if (!st || !st.els || !sample.url) return Promise.resolve();
+
+            const { pad, sub, bar } = st.els;
+            st.loading = true;
+            pad.disabled = true;
+            sub.textContent = "Chargement…";
+            bar.style.width = "0%";
+
+            return this.engine.loadSample(sample, (progress) => {
+                const pct = Math.floor(progress * 100);
+                bar.style.width = pct + "%";
+                sub.textContent = `Chargement ${pct}%`;
+            })
+            .then(async buffer => {
+                st.buffer = buffer;
+
+                // crée SoundItem si pas encore existant
+                if (!this.soundItems[i]) {
+                    const soundItem = new SoundItem(
+                        i,
+                        buffer,
+                        this.ctx,
+                        this.waveformCanvas,
+                        document.getElementById("myCanvasOverlay"),
+                        sample.name
+                    );
+                    this.soundItems[i] = soundItem;
+
+                    // dessine waveform immédiatement
+                    await this.engine.ensureContext();
+                    soundItem.onPlayClick();
+
+                    // clic sur pad pour rejouer
+                    pad.onclick = async () => {
+                        await this.engine.ensureContext();
+                        soundItem.onPlayClick();
+                    };
+                }
+
+                pad.classList.add("ready");
+                bar.style.width = "100%";
+                sub.textContent = "Prêt";
+                pad.disabled = false;
+            })
+            .catch(err => {
+                sub.textContent = "Erreur";
+                bar.style.width = "0%";
+                pad.disabled = false;
+                console.error(err);
+            })
+            .finally(() => {
+                st.loading = false;
+            });
+        });
+
+        await Promise.allSettled(tasks);
+        this.globalStatus.textContent = "OK";
+        setTimeout(() => this.globalStatus.textContent = "", 1000);
+        this.btnAll.disabled = false;
+    }
+
+    
 }
+
+
