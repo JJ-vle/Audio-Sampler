@@ -1,10 +1,10 @@
 import WaveformDrawer from './waveformdrawer.js';
-import TrimbarsDrawer from './trimbarsdrawer.js';
 import { playSound } from './soundutils.js';
 import { pixelToSeconds } from './utils.js';
 
 export default class SoundItem {
-    constructor(index, buffer, ctx, canvas, canvasOverlay, name = `Sound ${index + 1}`) {
+    constructor(gui, index, buffer, ctx, canvas, canvasOverlay, name = `Sound ${index + 1}`) {
+        this.gui = gui;
         this.index = index;
         this.buffer = buffer;
         this.ctx = ctx;
@@ -13,13 +13,11 @@ export default class SoundItem {
         this.name = name;
 
         this.waveformDrawer = new WaveformDrawer();
-        //this.trimbarsDrawer = new TrimbarsDrawer(canvasOverlay, 100, 200);
-        //this.trim = { left: 100, right: 200 }; // default positions
-        this.trimbarsDrawer = new TrimbarsDrawer(canvasOverlay, 0, canvas.width);
-        this.trim = { left: 0, right: canvas.width };
+        //this.trimbarsDrawer = new TrimbarsDrawer(canvasOverlay, 0, canvas.width);
+        this.trim = { left: 0, right: canvas.width }; // default positions
         this.button = this.#createButton();
 
-        this.#initMouseEvents();
+        //this.#initMouseEvents();
     }
 
     #createButton() {
@@ -35,45 +33,65 @@ export default class SoundItem {
     }
 
     onPlayClick() {
-        // Sauvegarder trims de l’ancien son
-        if (window.currentSound && window.currentSound !== this) {
+
+        // sauvegarder trims de l’ancien son
+        if (window.currentSound) {
             window.currentSound.saveTrim();
         }
-
+        
         window.currentSound = this;
-
-        // Effacer et redessiner la waveform
+        
+        // restaurer
+        const td = this.gui.trimbarsDrawer;
+        td.leftTrimBar.x  = this.trim.left;
+        td.rightTrimBar.x = this.trim.right;
+    
+        // Clear
         const ctx2d = this.canvas.getContext("2d");
         ctx2d.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    
+        // Waveform
         this.waveformDrawer.init(this.buffer, this.canvas, "#83E83E");
         this.waveformDrawer.drawWave(0, this.canvas.height);
-
-        // Restaurer trims
-        this.trimbarsDrawer.leftTrimBar.x = this.trim.left;
-        this.trimbarsDrawer.rightTrimBar.x = this.trim.right;
-
-        // Convertir en secondes et jouer
+    
+        // Trimbars
+        this.gui.trimbarsDrawer.clear();
+        this.gui.trimbarsDrawer.draw();
+    
+        // Play avec trims
         const start = pixelToSeconds(this.trim.left, this.buffer.duration, this.canvas.width);
         const end = pixelToSeconds(this.trim.right, this.buffer.duration, this.canvas.width);
         playSound(this.ctx, this.buffer, start, end);
     }
+    
 
     saveTrim() {
-        this.trim.left = this.trimbarsDrawer.leftTrimBar.x;
-        this.trim.right = this.trimbarsDrawer.rightTrimBar.x;
+        const td = this.gui.trimbarsDrawer;
+        this.trim.left  = td.leftTrimBar.x;
+        this.trim.right = td.rightTrimBar.x;
     }
+    
 
     #initMouseEvents() {
         let mousePos = { x: 0, y: 0 };
-
+    
         this.canvasOverlay.onmousemove = (evt) => {
             const rect = this.canvas.getBoundingClientRect();
             mousePos.x = evt.clientX - rect.left;
             mousePos.y = evt.clientY - rect.top;
-            this.trimbarsDrawer.moveTrimBars(mousePos);
+    
+            // Déplace les trim bars si drag
+            this.gui.trimbarsDrawer.moveTrimBars(mousePos);
+    
+            // Redessine waveform + trims
+            const ctx2d = this.canvas.getContext("2d");
+            ctx2d.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            this.waveformDrawer.drawWave(0, this.canvas.height);
+            this.gui.trimbarsDrawer.draw();
         };
-
-        this.canvasOverlay.onmousedown = () => this.trimbarsDrawer.startDrag();
-        this.canvasOverlay.onmouseup = () => this.trimbarsDrawer.stopDrag();
+    
+        this.canvasOverlay.onmousedown = () => this.gui.trimbarsDrawer.startDrag();
+        this.canvasOverlay.onmouseup = () => this.gui.trimbarsDrawer.stopDrag();
     }
+    
 }

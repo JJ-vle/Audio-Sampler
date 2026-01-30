@@ -2,6 +2,7 @@
 import SamplerEngine from "./samplerEngine.js";
 import SoundItem from "./sounds.js";
 import WaveformDrawer from './waveformdrawer.js';
+import TrimbarsDrawer from './trimbarsdrawer.js';
 
 export default class SamplerGUI {
     constructor(ctx) {
@@ -16,6 +17,13 @@ export default class SamplerGUI {
         this.waveformCanvas = document.getElementById("myCanvas");
         this.waveformDrawer = new WaveformDrawer();
 
+        this.trimbarsDrawer = new TrimbarsDrawer(
+            document.getElementById("myCanvasOverlay"),
+            0,
+            this.waveformCanvas.width
+        );
+        this._initTrimEvents();
+
         this.presets = [];
         this.samples = [];
         this.state = [];
@@ -23,6 +31,7 @@ export default class SamplerGUI {
 
     }
 
+    
 
     async init() {
         const res = await fetch("http://localhost:3000/api/presets");
@@ -106,8 +115,17 @@ export default class SamplerGUI {
         if (!sample.url) return;
 
         pad.addEventListener("click", async () => {
-            const st = this.state[index];
+            let soundItem = this.soundItems[index];
         
+            // si SoundItem existe déjà --> juste jouer
+            if (soundItem) {
+                await this.engine.ensureContext();
+                soundItem.onPlayClick();
+                return;
+            }
+        
+            // sinon creer
+            const st = this.state[index];
             pad.disabled = true;
             sub.textContent = "Chargement…";
             bar.style.width = "0%";
@@ -119,11 +137,10 @@ export default class SamplerGUI {
                     sub.textContent = `Chargement ${pct}%`;
                 });
         
-
                 if (!buffer) throw new Error("Buffer non chargé");
-
-                // cree le SoundItem
-                const soundItem = new SoundItem(
+        
+                soundItem = new SoundItem(
+                    this,
                     index,
                     buffer,
                     this.ctx,
@@ -131,18 +148,12 @@ export default class SamplerGUI {
                     document.getElementById("myCanvasOverlay"),
                     sample.name
                 );
+        
                 this.soundItems[index] = soundItem;
         
-                // initialise waveform pour la première fois
                 await this.engine.ensureContext();
                 soundItem.onPlayClick();
         
-                // clic sur pad pour rejouer
-                pad.onclick = async () => {
-                    await this.engine.ensureContext();
-                    soundItem.onPlayClick();
-                };
-
                 bar.style.width = "100%";
                 sub.textContent = "Prêt";
                 pad.classList.add("ready");
@@ -155,8 +166,7 @@ export default class SamplerGUI {
                 console.error(e);
             }
         });
-        
-        
+         
 
         this.grid.appendChild(pad);
     }
@@ -186,6 +196,7 @@ export default class SamplerGUI {
                 // crée SoundItem si pas encore existant
                 if (!this.soundItems[i]) {
                     const soundItem = new SoundItem(
+                        this,
                         i,
                         buffer,
                         this.ctx,
@@ -227,8 +238,27 @@ export default class SamplerGUI {
         setTimeout(() => this.globalStatus.textContent = "", 1000);
         this.btnAll.disabled = false;
     }
-
+    
+    _initTrimEvents() {
+        let mousePos = { x: 0, y: 0 };
+    
+        this.trimbarsDrawer.canvas.onmousemove = (evt) => {
+            const rect = this.trimbarsDrawer.canvas.getBoundingClientRect();
+            mousePos.x = evt.clientX - rect.left;
+            mousePos.y = evt.clientY - rect.top;
+    
+            this.trimbarsDrawer.moveTrimBars(mousePos);
+    
+            const ctx2d = this.waveformCanvas.getContext("2d");
+            ctx2d.clearRect(0, 0, this.waveformCanvas.width, this.waveformCanvas.height);
+            window.currentSound?.waveformDrawer.drawWave(0, this.waveformCanvas.height);
+            this.trimbarsDrawer.draw();
+        };
+    
+        this.trimbarsDrawer.canvas.onmousedown = () => this.trimbarsDrawer.startDrag();
+        this.trimbarsDrawer.canvas.onmouseup   = () => this.trimbarsDrawer.stopDrag();
+    }
+    
     
 }
-
 

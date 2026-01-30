@@ -49,47 +49,52 @@ export default class WaveformDrawer {
         ctx.save();
         // start drawing at startY
         ctx.translate(0, startY);
-
+    
         ctx.fillStyle = this.color;
         ctx.strokeStyle = this.color;
-
+    
         let width = this.displayWidth;
         // Compute the coefficient for scaling the peaks (values between -1 and 1)
         // after this conversion, the peaks will be between -height/2 and height/2
-        let maxPeak = this.max(this.peaks) || 1;
+        let maxPeak = this.max(this.peaks);
+        if (!maxPeak || maxPeak < 0.01) maxPeak = 0.01;
         let coef = height / (2 * maxPeak);
-
+    
         let halfH = height / 2;
-
+    
         // draw a horizontal line at half height
         ctx.beginPath();
         ctx.moveTo(0, halfH);
         ctx.lineTo(width, halfH);
         console.log("drawing from 0, " + halfH + " to " + width + ", " + halfH);
         ctx.stroke();
-
-        //  draw the waveform
+    
+        console.log("Peaks:", this.peaks.slice(0, 20));
+    
+        // draw the waveform
         ctx.beginPath();
         ctx.moveTo(0, halfH);
-
+    
         // Draw the upper part of the waveform
         for (let i = 0; i < width; i++) {
             let h = Math.round(this.peaks[i] * coef);
             ctx.lineTo(i, halfH - h);
         }
-
-        // Then draw the lower part of the waveform (mirror)
-        ctx.moveTo(0, halfH);
-        for (let i = 0; i < width; i++) {
+    
+        // Draw the lower part of the waveform (backwards)
+        for (let i = width - 1; i >= 0; i--) {
             let h = Math.round(this.peaks[i] * coef);
             ctx.lineTo(i, halfH + h);
         }
-
-        // Use stroke instead of fill to ensure visibility
-        ctx.stroke();
-
+    
+        ctx.closePath();      // ferme le chemin pour le remplir correctement
+        ctx.fill();           // utilise fill au lieu de stroke pour assurer la visibilité
+    
         ctx.restore();
     }
+    
+    
+    
 
 /*
     // Builds an array of peaks for drawing
@@ -194,5 +199,3 @@ export default class WaveformDrawer {
 
 
 }
-
-
