@@ -7,6 +7,28 @@ import TrimbarsDrawer from './trimbarsdrawer.js';
 //export const BASE_URL = "http://localhost:3000"; 
 export const BASE_URL = "https://audio-sampler.onrender.com";
 
+// indices de pad selon la grille
+const KEY_MAP = {
+    // ligne du bas --> touches Z Q S D …
+    'a': 12,
+    'z': 13,
+    'e': 14,
+    'r': 15,
+    'q': 8,
+    's': 9,
+    'd': 10,
+    'f': 11,
+    'w': 4,
+    'x': 5,
+    'c': 6,
+    'v': 7,
+    '1': 0,
+    '2': 1,
+    '3': 2,
+    '4': 3
+};
+
+
 export default class SamplerGUI {
     constructor(ctx) {
         this.ctx = ctx;
@@ -51,17 +73,108 @@ export default class SamplerGUI {
         });
 
         this.btnAll.addEventListener("click", () => this.loadAll());
+
+        document.addEventListener("keydown", async (e) => {
+            if (e.repeat) return; // ignore répétition automatique
+            const key = e.key.toLowerCase();
+            const padIndex = KEY_MAP[key];
+            if (padIndex === undefined) return;
+        
+            const st = this.state[padIndex];
+            if (!st) return;
+        
+            let soundItem = this.soundItems[padIndex];
+            const els = st.els;
+        
+            // si SoundItem n’existe pas encore, créer et charger
+            if (!soundItem && this.slots[padIndex]) {
+                const sample = this.slots[padIndex];
+                if (!sample || !sample.url) return;
+        
+                st.loading = true;
+                if (els) {
+                    els.pad.disabled = true;
+                    els.sub.textContent = "Chargement…";
+                    els.bar.style.width = "0%";
+                }
+        
+                try {
+                    const buffer = await this.engine.loadSample(sample, (progress) => {
+                        if (!els) return;
+                        const pct = Math.floor(progress * 100);
+                        els.bar.style.width = pct + "%";
+                        els.sub.textContent = `Chargement ${pct}%`;
+                    });
+                    st.buffer = buffer;
+        
+                    soundItem = new SoundItem(
+                        this,
+                        padIndex,
+                        buffer,
+                        this.ctx,
+                        this.waveformCanvas,
+                        document.getElementById("myCanvasOverlay"),
+                        sample.name
+                    );
+                    this.soundItems[padIndex] = soundItem;
+        
+                    if (els) {
+                        els.bar.style.width = "100%";
+                        els.sub.textContent = "Prêt";
+                        els.pad.disabled = false;
+                        els.pad.classList.add("ready");
+                    }
+        
+                } catch (err) {
+                    console.error("Erreur chargement clavier:", err);
+                    if (els) {
+                        els.sub.textContent = "Erreur";
+                        els.bar.style.width = "0%";
+                        els.pad.disabled = false;
+                    }
+                    st.loading = false;
+                    return;
+                }
+                st.loading = false;
+            }
+        
+            if (!soundItem) return;
+        
+            // jouer
+            await this.engine.ensureContext();
+            soundItem.onPlayClick();
+        });
+        
+        
+        
     }
 
     populatePresetList() {
         this.presetSelect.innerHTML = "";
-        this.presets.forEach((p, i) => {
-            const opt = document.createElement("option");
-            opt.value = i;
-            opt.textContent = p.name;
-            this.presetSelect.appendChild(opt);
+    
+        // grouper les presets par type
+        const groups = {};
+        this.presets.forEach(p => {
+            if (!groups[p.type]) groups[p.type] = [];
+            groups[p.type].push(p);
         });
+    
+        // creer les optgroup
+        for (const type of Object.keys(groups)) {
+            const optgroup = document.createElement("optgroup");
+            optgroup.label = type; // label non sélectionnable
+    
+            groups[type].forEach(p => {
+                const opt = document.createElement("option");
+                opt.value = this.presets.indexOf(p); // index original pour loadPreset
+                opt.textContent = p.name;
+                optgroup.appendChild(opt);
+            });
+    
+            this.presetSelect.appendChild(optgroup);
+        }
     }
+    
 
     async loadPreset(index) {
         const preset = this.presets[index];

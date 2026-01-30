@@ -30,7 +30,7 @@ Il est découpé en deux parties principales : le **GUI** (interface utilisateur
 
 ### Fonctionnalités implémentées
 
-Par manque de temps, seules les fonctionnalités **obligatoires** ont été implémentées dans le sampleur :
+Par manque de temps, seules les fonctionnalités **obligatoires** ont été majoritairement implémentées dans le sampleur, avec **deux optionnelles** en plus :
 
 * Séparation claire entre GUI et moteur audio.
 * Test en mode **headless** (sans GUI) pour vérifier le fonctionnement des sons.
@@ -40,6 +40,8 @@ Par manque de temps, seules les fonctionnalités **obligatoires** ont été impl
 * Lecture des sons au clic sur un pad.
 * Visualisation de la forme d’onde dans un canvas lors de la lecture.
 * Possibilité de trimmer chaque son individuellement.
+* *Optionnelle :* mapping des touches du clavier sur les pads pour jouer les sons.
+* *Optionnelle :* groupement des presets par type dans la liste
 
 ### Mise en œuvre
 
@@ -201,6 +203,7 @@ L’IA a été utilisée uniquement comme outil d’assistance via la version **
 * Débogage des trimbars et du dessin des formes d’onde (au final le problème venait du navigateur).
 * Assistance pour la définition de l’objectif et l’exécution des tests headless.
 * Aide pour assigner correctement les boutons de pads dans le bon ordre.
+* Explications sur le fonctionnement de mapping de touches
 
 **API (Backend) :**
 * Assistance sur l’implémentation des filtres de requêtes MongoDB.
