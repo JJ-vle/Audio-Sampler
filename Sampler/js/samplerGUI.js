@@ -4,6 +4,9 @@ import SoundItem from "./sounds.js";
 import WaveformDrawer from './waveformdrawer.js';
 import TrimbarsDrawer from './trimbarsdrawer.js';
 
+//export const BASE_URL = "http://localhost:3000"; 
+export const BASE_URL = "https://audio-sampler.onrender.com";
+
 export default class SamplerGUI {
     constructor(ctx) {
         this.ctx = ctx;
@@ -31,10 +34,8 @@ export default class SamplerGUI {
 
     }
 
-    
-
     async init() {
-        const res = await fetch("http://localhost:3000/api/presets");
+        const res = await fetch(`${BASE_URL}/api/presets`);
         this.presets = await res.json();
 
         if (!this.presets.length) {

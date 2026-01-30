@@ -66,10 +66,10 @@ export default class WaveformDrawer {
         ctx.beginPath();
         ctx.moveTo(0, halfH);
         ctx.lineTo(width, halfH);
-        console.log("drawing from 0, " + halfH + " to " + width + ", " + halfH);
+        //console.log("drawing from 0, " + halfH + " to " + width + ", " + halfH);
         ctx.stroke();
     
-        console.log("Peaks:", this.peaks.slice(0, 20));
+        //console.log("Peaks:", this.peaks.slice(0, 20));
     
         // draw the waveform
         ctx.beginPath();
@@ -163,7 +163,7 @@ export default class WaveformDrawer {
     getPeaks() {
         const buffer = this.decodedAudioBuffer;
         if (!buffer) {
-            console.warn("WaveformDrawer: no buffer provided");
+            //console.warn("WaveformDrawer: no buffer provided");
             this.peaks = new Float32Array(0);
             return;
         }

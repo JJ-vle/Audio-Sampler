@@ -1,3 +1,5 @@
+import { BASE_URL } from "./samplerGUI.js";
+
 export default class SamplerEngine {
     constructor(ctx) {
         this.ctx = ctx;
@@ -21,7 +23,7 @@ export default class SamplerEngine {
         if (!url.startsWith("/")) url = "/" + url;
         if (!url.startsWith("/presets/")) url = "/presets" + url;
 
-        return `http://localhost:3000${url}`;
+        return `${BASE_URL}${url}`;
     }
 
     async loadSample(sample, onProgress) {
