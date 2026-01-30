@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Sampler - Test Headless</title>
+</head>
+<body>
+
+<h2>Test Sampler - Mode Headless</h2>
+
+<!-- user action needed to use audiocontext -->
+<button id="start">Lancer le test headless</button>
+<div id="log"></div>
+
+<script type="module">
+import SamplerEngine from "./js/samplerEngine.js";
+
+const logDiv = document.getElementById("log");
+const btn = document.getElementById("start");
+
+function log(msg) {
+    const p = document.createElement("p");
+    p.textContent = msg;
+    logDiv.appendChild(p);
+}
+
+const engine = new SamplerEngine();
+
+async function testHeadless() {
+    log("Initialisation moteur audio");
+
+    const sample = { url: "/presets/808/Kick 808 1.wav" };
+
+    try {
+        log("Chargement du sample...");
+        const buffer = await engine.loadSample(sample);
+
+        log(`Sample chargé (${buffer.duration.toFixed(2)} s)`);
+        log("Lecture automatique");
+        engine.play(buffer);
+
+    } catch (e) {
+        log("Erreur : " + e.message);
+    }
+}
+
+btn.addEventListener("click", async () => {
+    btn.disabled = true;
+    await engine.ensureContext();
+    testHeadless();
+});
+
+</script>
+
+</body>
+</html>

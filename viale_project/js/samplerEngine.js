@@ -1,4 +1,3 @@
-// samplerEngine.js
 export default class SamplerEngine {
     constructor(ctx) {
         this.ctx = ctx;
@@ -62,16 +61,19 @@ export default class SamplerEngine {
     
         return buffer;
     }
-    
-    
 
-    async play(buffer) {
-        await this.ensureContext(); 
+    async play(buffer, start = 0, end = null) {
+        await this.ensureContext();
         if (!buffer) return;
 
         const src = this.ctx.createBufferSource();
         src.buffer = buffer;
         src.connect(this.ctx.destination);
-        src.start();
+
+        if (end !== null) {
+            src.start(0, start, end - start);
+        } else {
+            src.start(0, start);
+        }
     }
 }
